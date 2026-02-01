@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>EasyTools | أدوات مجانية PDF – ضغط – QR – نص</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+/* ===== عام ===== */
+body {
+  font-family: 'Arial', sans-serif;
+  background: #121212; /* خلفية ليلية */
+  color: #f0f0f0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  background: linear-gradient(90deg,#000000,#1f2937);
+  padding: 20px 0;
+  text-align: center;
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+  gap: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 1200px;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+.card h2 {
+  margin-top: 0;
+  color: #ffd700;
+}
+
+input[type="file"], input[type="text"], textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: none;
+  background: #2a2a2a;
+  color: #fff;
+}
+
+button {
+  padding: 10px 20px;
+  background: linear-gradient(45deg,#2563eb,#1e40af);
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(37,99,235,0.6);
+}
+
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 10px;
+  font-weight: bold;
+  min-height: 22px;
+}
+
+/* QR Code */
+#qr-code {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Footer */
+footer {
+  margin: 40px 0;
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+   EasyTools - الأدوات المجانية
+</header>
+
+<div class="container">
+
+  <!-- تحويل الصور إلى PDF -->
+  <div class="card">
+    <h2>📄 تحويل الصور إلى PDF</h2>
+    <input type="file" id="images" multiple accept="image/*">
+    <button id="pdf-button">تحويل إلى PDF</button>
+    <p id="status" class="status"></p>
+  </div>
+
+  <!-- ضغط الصور -->
+  <div class="card">
+    <h2>🖼️ ضغط الصور</h2>
+    <input type="file" id="compress-images" multiple accept="image/*">
+    <button id="compress-button">ضغط الصور</button>
+    <p id="compress-status" class="status"></p>
+  </div>
+
+  <!-- تحويل النص إلى PDF -->
+  <div class="card">
+    <h2>📝 تحويل النص إلى PDF</h2>
+    <textarea id="text-input" rows="5" placeholder="اكتب النص هنا..."></textarea>
+    <button id="text-to-pdf-button">تحويل النص إلى PDF</button>
+    <p id="text-pdf-status" class="status"></p>
+  </div>
+
+  <!-- توليد QR Code -->
+  <div class="card">
+    <h2>📱 توليد QR Code</h2>
+    <input type="text" id="qr-text" placeholder="اكتب الرابط أو النص هنا...">
+    <button id="qr-button">توليد QR Code</button>
+    <div id="qr-code"></div>
+    <button id="qr-download-button">⬇️ تنزيل QR Code</button>
+    <p id="qr-status" class="status"></p>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 EasyTools | جميع الحقوق محفوظة
+</footer>
+
+<!-- مكتبات -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ===== الصور → PDF =====
+document.getElementById("pdf-button").addEventListener("click", async()=>{
+  const files=document.getElementById("images").files;
+  const status=document.getElementById("status");
+  const button=document.getElementById("pdf-button");
+  if(files.length===0){ status.textContent="❌ الرجاء اختيار صورة واحدة على الأقل"; status.style.color="red"; return; }
+
+  button.disabled=true; status.textContent="⏳ جاري إنشاء PDF..."; status.style.color="#2563eb";
+  try{
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF();
+    for(let i=0;i<files.length;i++){
+      const img=await new Promise(res=>{
+        const reader=new FileReader();
+        reader.onload=e=>res(e.target.result);
+        reader.readAsDataURL(files[i]);
+      });
+      if(i>0) pdf.addPage();
+      pdf.addImage(img,'JPEG',10,10,190,0);
+    }
+    pdf.save("images.pdf");
+    status.textContent="✅ تم إنشاء PDF بنجاح"; status.style.color="green";
+  }catch(err){ console.error(err); status.textContent="❌ حدث خطأ أثناء إنشاء PDF"; status.style.color="red";
+  }finally{ button.disabled=false; }
+});
+
+// ===== ضغط الصور =====
+document.getElementById("compress-button").addEventListener("click", async()=>{
+  const files=document.getElementById("compress-images").files;
+  const status=document.getElementById("compress-status");
+  const button=document.getElementById("compress-button");
+  if(files.length===0){ status.textContent="❌ الرجاء اختيار صورة واحدة على الأقل"; status.style.color="red"; return; }
+
+  button.disabled=true; status.textContent="⏳ جارٍ ضغط الصور..."; status.style.color="#2563eb";
+  try{
+    for(let i=0;i<files.length;i++){
+      const file=files[i];
+      const img=await new Promise(res=>{
+        const reader=new FileReader();
+        reader.onload=e=>{
+          const im=new Image();
+          im.src=e.target.result;
+          im.onload=()=>res(im);
+        };
+        reader.readAsDataURL(file);
+      });
+      const canvas=document.createElement("canvas");
+      const ctx=canvas.getContext("2d");
+      canvas.width=img.width/2; canvas.height=img.height/2;
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+      await new Promise(resolve=>{
+        canvas.toBlob(blob=>{
+          const link=document.createElement("a");
+          link.href=URL.createObjectURL(blob);
+          link.download=file.name.replace(/\.(\w+)$/,"_compressed.$1");
+          link.click();
+          resolve();
+        },"image/jpeg",0.7);
+      });
+    }
+    status.textContent="✅ تم ضغط جميع الصور"; status.style.color="green";
+  }catch(err){ console.error(err); status.textContent="❌ حدث خطأ أثناء الضغط"; status.style.color="red";
+  }finally{ button.disabled=false; }
+});
+
+// ===== النص → PDF =====
+document.getElementById("text-to-pdf-button").addEventListener("click", ()=>{
+  const text=document.getElementById("text-input").value.trim();
+  const status=document.getElementById("text-pdf-status");
+  const button=document.getElementById("text-to-pdf-button");
+  if(!text){ status.textContent="❌ الرجاء كتابة نص"; status.style.color="red"; return; }
+
+  button.disabled=true; status.textContent="⏳ جاري إنشاء PDF..."; status.style.color="#2563eb";
+  try{
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF();
+    const lines=pdf.splitTextToSize(text,180);
+    pdf.text(lines,10,10);
+    pdf.save("text.pdf");
+    status.textContent="✅ تم إنشاء PDF بنجاح"; status.style.color="green";
+  }catch(err){ console.error(err); status.textContent="❌ حدث خطأ أثناء إنشاء PDF"; status.style.color="red";
+  }finally{ button.disabled=false; }
+});
+
+// ===== توليد QR Code =====
+document.getElementById("qr-button").addEventListener("click", ()=>{
+  const text=document.getElementById("qr-text").value.trim();
+  const status=document.getElementById("qr-status");
+  if(!text){ status.textContent="❌ الرجاء كتابة النص"; status.style.color="red"; return; }
+
+  document.getElementById("qr-code").innerHTML="";
+  try{
+    new QRCode(document.getElementById("qr-code"),{text:text,width:200,height:200});
+    status.textContent="✅ تم توليد QR Code بنجاح"; status.style.color="green";
+  }catch(err){ console.error(err); status.textContent="❌ حدث خطأ أثناء توليد QR Code"; status.style.color="red"; }
+});
+
+// تنزيل QR Code
+document.getElementById("qr-download-button").addEventListener("click", ()=>{
+  const qrCodeDiv=document.getElementById("qr-code");
+  const img=qrCodeDiv.querySelector("img")||qrCodeDiv.querySelector("canvas");
+  if(!img) return alert("❌ لم يتم توليد QR Code بعد!");
+  let dataURL=img.tagName==="IMG"? img.src: img.toDataURL("image/png");
+  const link=document.createElement("a");
+  link.href=dataURL;
+  link.download="qr-code.png";
+  link.click();
+});
+</script>
+
+</body>
+</html>
